@@ -40,7 +40,7 @@ export function AdminPagination({
           Prev
         </Link>
       ) : (
-        <span className="flex h-9 items-center px-3 text-sm text-muted/40">Prev</span>
+        <span className="flex h-9 items-center px-3 text-sm text-muted">Prev</span>
       )}
 
       {pages.map((p, i) =>
@@ -67,7 +67,7 @@ export function AdminPagination({
           Next
         </Link>
       ) : (
-        <span className="flex h-9 items-center px-3 text-sm text-muted/40">Next</span>
+        <span className="flex h-9 items-center px-3 text-sm text-muted">Next</span>
       )}
     </nav>
   );

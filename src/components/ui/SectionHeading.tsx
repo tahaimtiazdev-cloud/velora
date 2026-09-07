@@ -13,11 +13,12 @@ export function SectionHeading({
 }) {
   const alignClass = align === "center" ? "text-center mx-auto" : "text-left";
   const descriptionColor = tone === "paper" ? "text-paper/70" : "text-muted";
+  const eyebrowColor = tone === "paper" ? "text-paper/70" : "text-muted";
 
   return (
     <div className={`max-w-2xl ${alignClass}`}>
       {eyebrow ? (
-        <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-muted">
+        <p className={`mb-3 text-xs font-medium uppercase tracking-[0.18em] ${eyebrowColor}`}>
           {eyebrow}
         </p>
       ) : null}

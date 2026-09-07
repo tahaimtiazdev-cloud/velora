@@ -93,7 +93,7 @@ function PageLink({
       <span
         aria-disabled="true"
         aria-label={label}
-        className="flex h-9 items-center justify-center px-3 text-sm text-muted/40"
+        className="flex h-9 items-center justify-center px-3 text-sm text-muted"
       >
         {children}
       </span>
