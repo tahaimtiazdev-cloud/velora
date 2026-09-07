@@ -1,3 +1,5 @@
-import type { getFeaturedProducts } from "@/lib/queries/products";
+import type { getProductBySlug, getProducts } from "@/lib/queries/products";
 
-export type ProductCardData = Awaited<ReturnType<typeof getFeaturedProducts>>[number];
+export type ProductCardData = Awaited<ReturnType<typeof getProducts>>["products"][number];
+
+export type ProductDetailData = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;

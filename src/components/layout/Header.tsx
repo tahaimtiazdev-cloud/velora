@@ -25,7 +25,7 @@ export function Header({ categories }: { categories: Category[] }) {
     event.preventDefault();
     const trimmed = query.trim();
     setSearchOpen(false);
-    router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search");
+    router.push(trimmed ? `/shop?q=${encodeURIComponent(trimmed)}` : "/shop");
   }
 
   return (
