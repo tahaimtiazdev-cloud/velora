@@ -11,9 +11,11 @@ import type { Category } from "@/generated/prisma/client";
 export function Header({
   categories,
   cartItemCount: initialCartItemCount,
+  isSignedIn,
 }: {
   categories: Category[];
   cartItemCount: number;
+  isSignedIn: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -115,8 +117,8 @@ export function Header({
             <SearchIcon />
           </button>
           <Link
-            href="/account"
-            aria-label="Account"
+            href={isSignedIn ? "/account" : "/login"}
+            aria-label={isSignedIn ? "Account" : "Sign In"}
             prefetch={false}
             className="focus-ring hidden h-10 w-10 items-center justify-center text-ink sm:flex"
           >
@@ -202,12 +204,12 @@ export function Header({
               </Link>
             ))}
             <Link
-              href="/account"
+              href={isSignedIn ? "/account" : "/login"}
               onClick={() => setOpen(false)}
               prefetch={false}
               className="focus-ring mt-3 rounded-sm px-3 py-3 text-base font-medium text-ink hover:bg-surface"
             >
-              Account
+              {isSignedIn ? "Account" : "Sign In"}
             </Link>
           </Container>
         </div>

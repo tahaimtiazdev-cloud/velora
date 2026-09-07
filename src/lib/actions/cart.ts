@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { ensureCartToken, getCartToken } from "@/lib/cart/session";
+import { cartBelongsToOwner, cartCreateDataForOwner, cartWhereForOwner, ensureCartOwner, getCartOwner } from "@/lib/cart/owner";
 import { resolveCartLine } from "@/lib/cart/resolve";
 import {
   addCartItemSchema,
@@ -36,14 +36,14 @@ export async function addCartItem(input: {
     return { success: false, error: resolved.error };
   }
 
-  const token = await ensureCartToken();
+  const owner = await ensureCartOwner();
 
   try {
     const result = await db.$transaction(async (tx) => {
       const cart = await tx.cart.upsert({
-        where: { sessionToken: token },
+        where: cartWhereForOwner(owner),
         update: {},
-        create: { sessionToken: token },
+        create: cartCreateDataForOwner(owner),
       });
 
       const existing = await tx.cartItem.findFirst({
@@ -101,18 +101,19 @@ export async function updateCartItemQuantity(input: {
   }
   const { cartItemId, quantity } = parsed.data;
 
-  const token = await getCartToken();
-  if (!token) {
+  const owner = await getCartOwner();
+  if (!owner) {
     return { success: false, error: "Your cart could not be found." };
   }
 
   const item = await db.cartItem.findUnique({
     where: { id: cartItemId },
-    include: { cart: true, product: true, variant: true },
+    include: { cart: true },
   });
 
-  // Ownership check: the cart item must belong to *this* session's cart.
-  if (!item || item.cart.sessionToken !== token) {
+  // Ownership check: the cart item must belong to *this* session's cart —
+  // never trust the cart-item id alone.
+  if (!item || !cartBelongsToOwner(item.cart, owner)) {
     return { success: false, error: "That item is not in your cart." };
   }
 
@@ -150,8 +151,8 @@ export async function removeCartItem(input: { cartItemId: string }): Promise<Car
     return { success: false, error: firstIssueMessage(parsed.error) };
   }
 
-  const token = await getCartToken();
-  if (!token) {
+  const owner = await getCartOwner();
+  if (!owner) {
     return { success: false, error: "Your cart could not be found." };
   }
 
@@ -160,7 +161,7 @@ export async function removeCartItem(input: { cartItemId: string }): Promise<Car
     include: { cart: true },
   });
 
-  if (!item || item.cart.sessionToken !== token) {
+  if (!item || !cartBelongsToOwner(item.cart, owner)) {
     return { success: false, error: "That item is not in your cart." };
   }
 
@@ -175,13 +176,13 @@ export async function removeCartItem(input: { cartItemId: string }): Promise<Car
 }
 
 export async function clearCart(): Promise<CartActionResult> {
-  const token = await getCartToken();
-  if (!token) {
+  const owner = await getCartOwner();
+  if (!owner) {
     return { success: true };
   }
 
   try {
-    const cart = await db.cart.findUnique({ where: { sessionToken: token } });
+    const cart = await db.cart.findUnique({ where: cartWhereForOwner(owner) });
     if (cart) {
       await db.cartItem.deleteMany({ where: { cartId: cart.id } });
     }

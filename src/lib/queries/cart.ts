@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { getCartToken } from "@/lib/cart/session";
+import { cartWhereForOwner, getCartOwner } from "@/lib/cart/owner";
 
 export interface CartLineView {
   id: string;
@@ -35,11 +35,11 @@ const EMPTY_CART: CartView = { cartId: null, items: [], itemCount: 0, subtotal: 
  * since CartItem intentionally has no price column (see schema comment).
  */
 export async function getCartView(): Promise<CartView> {
-  const token = await getCartToken();
-  if (!token) return EMPTY_CART;
+  const owner = await getCartOwner();
+  if (!owner) return EMPTY_CART;
 
   const cart = await db.cart.findUnique({
-    where: { sessionToken: token },
+    where: cartWhereForOwner(owner),
     include: {
       items: {
         orderBy: { createdAt: "asc" },
@@ -105,11 +105,11 @@ export async function getCartView(): Promise<CartView> {
 }
 
 export async function getCartItemCount(): Promise<number> {
-  const token = await getCartToken();
-  if (!token) return 0;
+  const owner = await getCartOwner();
+  if (!owner) return 0;
 
   const result = await db.cartItem.aggregate({
-    where: { cart: { sessionToken: token } },
+    where: { cart: cartWhereForOwner(owner) },
     _sum: { quantity: true },
   });
 

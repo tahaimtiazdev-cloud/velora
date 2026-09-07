@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { getCategories } from "@/lib/queries/categories";
 import { getCartItemCount } from "@/lib/queries/cart";
 import { siteConfig } from "@/lib/site-config";
+import { auth } from "@/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,7 +42,11 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [categories, cartItemCount] = await Promise.all([getCategories(), getCartItemCount()]);
+  const [categories, cartItemCount, session] = await Promise.all([
+    getCategories(),
+    getCartItemCount(),
+    auth(),
+  ]);
 
   return (
     <html
@@ -55,7 +60,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <Header categories={categories} cartItemCount={cartItemCount} />
+        <Header
+          categories={categories}
+          cartItemCount={cartItemCount}
+          isSignedIn={Boolean(session?.user)}
+        />
         <main id="main-content" className="flex-1">
           {children}
         </main>
