@@ -1,0 +1,4 @@
+<svg width="200" height="260" viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Product illustration">
+  <rect width="200" height="260" fill="#efece2"/>
+  <path d="M50 60c8-14 22-24 40-26l10 14 10-14c18 2 32 12 40 26l-16 20-10-8v82c0 6-4 10-10 10H86c-6 0-10-4-10-10V72l-10 8-16-20Zm40-22v20m20-20v20" fill="none" stroke="#15140f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

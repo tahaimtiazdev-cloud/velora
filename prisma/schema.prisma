@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum ProductStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// Fulfillment status. Kept separate from PaymentStatus on purpose.
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+/// Payment status, driven by Stripe events. Kept separate from OrderStatus.
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String   @unique
+  passwordHash String?
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  cart   Cart?
+  orders Order[]
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id              String        @id @default(cuid())
+  name            String
+  slug            String        @unique
+  description     String
+  price           Decimal       @db.Decimal(10, 2)
+  compareAtPrice  Decimal?      @db.Decimal(10, 2)
+  sku             String        @unique
+  stock           Int           @default(0)
+  featured        Boolean       @default(false)
+  isNewArrival    Boolean       @default(false)
+  status          ProductStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  images     ProductImage[]
+  variants   ProductVariant[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([featured])
+  @@index([isNewArrival])
+  @@index([status])
+}
+
+model ProductImage {
+  id        String @id @default(cuid())
+  url       String
+  alt       String
+  sortOrder Int    @default(0)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+/// A single selectable option (e.g. type "Size", value "M"). Each variant
+/// row tracks its own stock, so a product with Size and Color options is
+/// modeled as independent, independently-stocked variant rows rather than
+/// a full Size x Color combination matrix.
+model ProductVariant {
+  id             String  @id @default(cuid())
+  type           String
+  value          String
+  priceModifier  Decimal @db.Decimal(10, 2) @default(0)
+  stock          Int     @default(0)
+  sku            String? @unique
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, type, value])
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------------------
+// Cart
+// ---------------------------------------------------------------------------
+
+/// Exactly one cart per signed-in user. Guest carts are identified by
+/// `sessionToken`, a random value stored in an httpOnly cookie, and are
+/// merged into the user's cart on sign-in.
+model Cart {
+  id           String   @id @default(cuid())
+  sessionToken String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+model Order {
+  id          String        @id @default(cuid())
+  orderNumber String        @unique
+  status      OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  subtotal Decimal @db.Decimal(10, 2)
+  shipping Decimal @db.Decimal(10, 2) @default(0)
+  tax      Decimal @db.Decimal(10, 2) @default(0)
+  total    Decimal @db.Decimal(10, 2)
+
+  paymentReference String?
+
+  customerEmail String
+  customerName  String
+
+  shippingAddressLine1 String
+  shippingAddressLine2 String?
+  shippingCity         String
+  shippingState        String
+  shippingPostalCode   String
+  shippingCountry      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+model OrderItem {
+  id       String  @id @default(cuid())
+  quantity Int
+  priceAtPurchase Decimal @db.Decimal(10, 2)
+
+  /// Snapshots so order history stays accurate even if the product is
+  /// later renamed, re-priced, or archived.
+  productName  String
+  variantLabel String?
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+// ---------------------------------------------------------------------------
+// Marketing
+// ---------------------------------------------------------------------------
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

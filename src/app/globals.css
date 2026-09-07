@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #faf9f6;
+  --color-foreground: #15140f;
+
+  --color-ink: #15140f;
+  --color-ink-soft: #2b2a24;
+  --color-paper: #faf9f6;
+  --color-surface: #f0eee7;
+  --color-surface-dark: #e6e2d8;
+  --color-line: #e1ddd2;
+  --color-muted: #6b675f;
+
+  --color-accent: #4a5240;
+  --color-accent-dark: #363d30;
+  --color-accent-soft: #eceee6;
+
+  --color-sale: #9c4b32;
+  --color-sale-soft: #f5e9e4;
+  --color-warning: #a3792f;
+  --color-warning-soft: #f6efdf;
+  --color-error: #a3352b;
+  --color-error-soft: #f6e6e3;
+  --color-success: #4a5240;
+  --color-success-soft: #eceee6;
+
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-fraunces);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* Scrollable strips (mobile category rail, filter chips) without visible scrollbars */
+.scroll-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+}
