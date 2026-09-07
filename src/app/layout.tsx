@@ -64,6 +64,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           categories={categories}
           cartItemCount={cartItemCount}
           isSignedIn={Boolean(session?.user)}
+          isAdmin={session?.user?.role === "ADMIN"}
         />
         <main id="main-content" className="flex-1">
           {children}

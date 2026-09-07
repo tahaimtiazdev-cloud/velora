@@ -12,10 +12,12 @@ export function Header({
   categories,
   cartItemCount: initialCartItemCount,
   isSignedIn,
+  isAdmin,
 }: {
   categories: Category[];
   cartItemCount: number;
   isSignedIn: boolean;
+  isAdmin: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -107,6 +109,15 @@ export function Header({
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-2">
+          {isAdmin ? (
+            <Link
+              href="/admin"
+              prefetch={false}
+              className="focus-ring hidden h-10 items-center px-2 text-xs font-medium uppercase tracking-wide text-muted hover:text-ink lg:flex"
+            >
+              Admin
+            </Link>
+          ) : null}
           <button
             type="button"
             aria-label="Search"
@@ -211,6 +222,16 @@ export function Header({
             >
               {isSignedIn ? "Account" : "Sign In"}
             </Link>
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                prefetch={false}
+                className="focus-ring rounded-sm px-3 py-3 text-base font-medium text-ink hover:bg-surface"
+              >
+                Admin
+              </Link>
+            ) : null}
           </Container>
         </div>
       </div>
