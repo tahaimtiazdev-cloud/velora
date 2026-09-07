@@ -6,7 +6,13 @@ import { PrismaPg } from "@prisma/adapter-pg";
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+// See withPgBouncerFlag in src/lib/db.ts for why this is required against
+// Neon's pooled connection string.
+const connectionString = process.env.DATABASE_URL!.includes("pgbouncer=")
+  ? process.env.DATABASE_URL!
+  : `${process.env.DATABASE_URL}${process.env.DATABASE_URL!.includes("?") ? "&" : "?"}pgbouncer=true`;
+
+const adapter = new PrismaPg({ connectionString });
 const db = new PrismaClient({ adapter });
 
 const CATEGORIES = [
