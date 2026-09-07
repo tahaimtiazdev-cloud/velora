@@ -24,12 +24,9 @@ export function CartSummary({ subtotal, itemCount }: { subtotal: number; itemCou
         <span className="text-lg text-ink">{formatPrice(subtotal)}</span>
       </div>
 
-      <Button type="button" size="lg" disabled className="mt-6 w-full">
-        Checkout — Coming in Stage 5
+      <Button href="/checkout" size="lg" className="mt-6 w-full">
+        Checkout
       </Button>
-      <p className="mt-3 text-center text-xs text-muted">
-        Checkout and payment aren&apos;t built yet. Your cart is saved.
-      </p>
     </div>
   );
 }

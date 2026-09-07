@@ -82,19 +82,24 @@ export default async function AccountPage() {
           ) : (
             <ul aria-label="Recent orders" className="mt-4 divide-y divide-line border-y border-line">
               {recentOrders.map((order) => (
-                <li key={order.id} className="flex items-center justify-between py-4 text-sm">
-                  <div>
-                    <p className="font-medium text-ink">{order.orderNumber}</p>
-                    <p className="text-xs text-muted">
-                      {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-                        order.createdAt
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge>{ORDER_STATUS_LABELS[order.status]}</Badge>
-                    <span className="text-ink">{formatPrice(order.total)}</span>
-                  </div>
+                <li key={order.id}>
+                  <Link
+                    href={`/account/orders/${order.id}`}
+                    className="focus-ring flex items-center justify-between py-4 text-sm hover:bg-surface"
+                  >
+                    <div>
+                      <p className="font-medium text-ink">{order.orderNumber}</p>
+                      <p className="text-xs text-muted">
+                        {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
+                          order.createdAt
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge>{ORDER_STATUS_LABELS[order.status]}</Badge>
+                      <span className="text-ink">{formatPrice(order.total)}</span>
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>

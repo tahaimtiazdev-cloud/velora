@@ -43,17 +43,22 @@ export default async function OrderHistoryPage() {
       ) : (
         <ul aria-label="Orders" className="mt-10 divide-y divide-line border-y border-line">
           {orders.map((order) => (
-            <li key={order.id} className="flex flex-wrap items-center justify-between gap-3 py-5 text-sm">
-              <div>
-                <p className="font-medium text-ink">{order.orderNumber}</p>
-                <p className="text-xs text-muted">
-                  {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(order.createdAt)}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Badge>{ORDER_STATUS_LABELS[order.status]}</Badge>
-                <span className="text-ink">{formatPrice(order.total)}</span>
-              </div>
+            <li key={order.id}>
+              <Link
+                href={`/account/orders/${order.id}`}
+                className="focus-ring flex flex-wrap items-center justify-between gap-3 py-5 text-sm hover:bg-surface"
+              >
+                <div>
+                  <p className="font-medium text-ink">{order.orderNumber}</p>
+                  <p className="text-xs text-muted">
+                    {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(order.createdAt)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Badge>{ORDER_STATUS_LABELS[order.status]}</Badge>
+                  <span className="text-ink">{formatPrice(order.total)}</span>
+                </div>
+              </Link>
             </li>
           ))}
         </ul>

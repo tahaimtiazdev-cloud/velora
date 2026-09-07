@@ -187,7 +187,9 @@ model Order {
   tax      Decimal @db.Decimal(10, 2) @default(0)
   total    Decimal @db.Decimal(10, 2)
 
-  paymentReference String?
+  /// Stripe Checkout Session id. Unique so a retried webhook delivery
+  /// can never create a second Order for the same payment.
+  paymentReference String? @unique
 
   customerEmail String
   customerName  String
@@ -232,6 +234,43 @@ model OrderItem {
   variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
+}
+
+/// A short-lived snapshot of a checkout attempt, created right before
+/// redirecting to Stripe and consumed by the webhook once payment is
+/// confirmed. The Order itself is only ever created from this snapshot
+/// plus verified Stripe event data — never from the client reaching the
+/// success page. Lets the webhook rebuild the order without trusting
+/// anything the browser sends back.
+model PendingCheckout {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  cartId String
+  userId String?
+
+  customerEmail String
+  customerName  String
+
+  shippingAddressLine1 String
+  shippingAddressLine2 String?
+  shippingCity         String
+  shippingState        String
+  shippingPostalCode   String
+  shippingCountry      String
+
+  subtotal Decimal @db.Decimal(10, 2)
+  shipping Decimal @db.Decimal(10, 2)
+  tax      Decimal @db.Decimal(10, 2)
+  total    Decimal @db.Decimal(10, 2)
+
+  /// Array<{ productId, variantId, productName, variantLabel, quantity, unitPrice }>
+  /// Prices captured here are what Stripe will actually charge — the
+  /// webhook uses these, not a re-fetched "current" price, as the
+  /// OrderItem.priceAtPurchase.
+  items Json
+
+  @@index([userId])
 }
 
 // ---------------------------------------------------------------------------
