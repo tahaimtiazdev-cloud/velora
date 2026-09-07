@@ -1,14 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { VariantSelector } from "@/components/product/VariantSelector";
 import { QuantitySelector } from "@/components/product/QuantitySelector";
 import { formatPrice } from "@/lib/format";
+import { addCartItem } from "@/lib/actions/cart";
+import { notifyCartUpdated } from "@/lib/cart/events";
 import type { ClientProduct } from "@/lib/serialize";
 
 export function PurchasePanel({ product }: { product: ClientProduct }) {
+  const router = useRouter();
   const hasVariants = product.variants.length > 0;
 
   const variantGroups = useMemo(() => {
@@ -23,7 +27,8 @@ export function PurchasePanel({ product }: { product: ClientProduct }) {
 
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const allTypesSelected = variantGroups.every(([type]) => selections[type]);
   // Each variant row is an independently-stocked, single-axis option (see
@@ -37,6 +42,7 @@ export function PurchasePanel({ product }: { product: ClientProduct }) {
   const stock = hasVariants ? selectedVariant?.stock ?? 0 : product.stock;
   const canSelect = hasVariants ? Boolean(selectedVariant) : true;
   const inStock = canSelect && stock > 0;
+  const disabled = !inStock || (hasVariants && !allTypesSelected) || isPending;
 
   const unitPrice = Number(product.price) + Number(selectedVariant?.priceModifier ?? 0);
 
@@ -47,12 +53,30 @@ export function PurchasePanel({ product }: { product: ClientProduct }) {
   }
 
   function handleAction(action: "cart" | "buy") {
-    if (!inStock) return;
-    setNotice(
-      action === "cart"
-        ? "Cart functionality arrives in the next build stage — this item isn't saved yet."
-        : "Checkout arrives in a later build stage — this order wasn't placed."
-    );
+    if (disabled) return;
+    setNotice(null);
+
+    startTransition(async () => {
+      const result = await addCartItem({
+        productId: product.id,
+        variantId: selectedVariant?.id,
+        quantity,
+      });
+
+      if (!result.success) {
+        setNotice({ type: "error", text: result.error ?? "Something went wrong." });
+        return;
+      }
+
+      notifyCartUpdated();
+
+      if (action === "buy") {
+        router.push("/cart");
+        return;
+      }
+
+      setNotice({ type: "success", text: result.message ?? "Added to cart." });
+    });
   }
 
   return (
@@ -86,7 +110,7 @@ export function PurchasePanel({ product }: { product: ClientProduct }) {
             quantity={quantity}
             max={Math.max(1, stock)}
             onChange={setQuantity}
-            disabled={!inStock}
+            disabled={!inStock || isPending}
           />
           <StockLabel hasVariants={hasVariants} canSelect={canSelect} stock={stock} />
         </div>
@@ -96,25 +120,34 @@ export function PurchasePanel({ product }: { product: ClientProduct }) {
         <Button
           type="button"
           size="lg"
-          disabled={!inStock || (hasVariants && !allTypesSelected)}
+          disabled={disabled}
           onClick={() => handleAction("cart")}
           className="w-full"
         >
-          {hasVariants && !allTypesSelected ? "Select Options" : inStock ? "Add to Cart" : "Out of Stock"}
+          {isPending
+            ? "Adding…"
+            : hasVariants && !allTypesSelected
+              ? "Select Options"
+              : inStock
+                ? "Add to Cart"
+                : "Out of Stock"}
         </Button>
         <Button
           type="button"
           variant="secondary"
           size="lg"
-          disabled={!inStock || (hasVariants && !allTypesSelected)}
+          disabled={disabled}
           onClick={() => handleAction("buy")}
           className="w-full"
         >
           Buy Now
         </Button>
         {notice ? (
-          <p role="status" className="pt-1 text-xs text-muted">
-            {notice}
+          <p
+            role="status"
+            className={`pt-1 text-xs ${notice.type === "error" ? "text-sale" : "text-muted"}`}
+          >
+            {notice.text}
           </p>
         ) : null}
       </div>

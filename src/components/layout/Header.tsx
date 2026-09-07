@@ -5,14 +5,22 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Container } from "@/components/ui/Container";
 import { mainNav, siteConfig } from "@/lib/site-config";
+import { CART_UPDATED_EVENT } from "@/lib/cart/events";
 import type { Category } from "@/generated/prisma/client";
 
-export function Header({ categories }: { categories: Category[] }) {
+export function Header({
+  categories,
+  cartItemCount: initialCartItemCount,
+}: {
+  categories: Category[];
+  cartItemCount: number;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [cartItemCount, setCartItemCount] = useState(initialCartItemCount);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -20,6 +28,24 @@ export function Header({ categories }: { categories: Category[] }) {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  // The server-rendered count (via props) can go stale after a client-side
+  // cart mutation without a full navigation. Refetch on the shared event
+  // instead of depending on layout revalidation timing.
+  useEffect(() => {
+    function refresh() {
+      fetch("/api/cart", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && typeof data.itemCount === "number") {
+            setCartItemCount(data.itemCount);
+          }
+        })
+        .catch(() => {});
+    }
+    window.addEventListener(CART_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(CART_UPDATED_EVENT, refresh);
+  }, []);
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,6 +93,7 @@ export function Header({ categories }: { categories: Category[] }) {
                   <Link
                     key={category.id}
                     href={`/categories/${category.slug}`}
+                    prefetch={false}
                     className="focus-ring rounded-sm px-3 py-2 text-sm text-ink hover:bg-surface"
                   >
                     {category.name}
@@ -90,16 +117,25 @@ export function Header({ categories }: { categories: Category[] }) {
           <Link
             href="/account"
             aria-label="Account"
+            prefetch={false}
             className="focus-ring hidden h-10 w-10 items-center justify-center text-ink sm:flex"
           >
             <UserIcon />
           </Link>
           <Link
             href="/cart"
-            aria-label="Cart"
-            className="focus-ring flex h-10 w-10 items-center justify-center text-ink"
+            aria-label={`Cart${cartItemCount > 0 ? `, ${cartItemCount} item${cartItemCount === 1 ? "" : "s"}` : ""}`}
+            className="focus-ring relative flex h-10 w-10 items-center justify-center text-ink"
           >
             <BagIcon />
+            {cartItemCount > 0 ? (
+              <span
+                aria-hidden="true"
+                className="absolute right-0.5 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-[10px] font-medium leading-none text-paper"
+              >
+                {cartItemCount > 99 ? "99+" : cartItemCount}
+              </span>
+            ) : null}
           </Link>
           <button
             type="button"
@@ -159,6 +195,7 @@ export function Header({ categories }: { categories: Category[] }) {
                 key={category.id}
                 href={`/categories/${category.slug}`}
                 onClick={() => setOpen(false)}
+                prefetch={false}
                 className="focus-ring rounded-sm px-3 py-3 text-base text-ink hover:bg-surface"
               >
                 {category.name}
@@ -167,6 +204,7 @@ export function Header({ categories }: { categories: Category[] }) {
             <Link
               href="/account"
               onClick={() => setOpen(false)}
+              prefetch={false}
               className="focus-ring mt-3 rounded-sm px-3 py-3 text-base font-medium text-ink hover:bg-surface"
             >
               Account

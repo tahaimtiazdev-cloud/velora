@@ -3,6 +3,7 @@ import { Geist, Fraunces } from "next/font/google";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getCategories } from "@/lib/queries/categories";
+import { getCartItemCount } from "@/lib/queries/cart";
 import { siteConfig } from "@/lib/site-config";
 import "./globals.css";
 
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const categories = await getCategories();
+  const [categories, cartItemCount] = await Promise.all([getCategories(), getCartItemCount()]);
 
   return (
     <html
@@ -54,7 +55,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <Header categories={categories} />
+        <Header categories={categories} cartItemCount={cartItemCount} />
         <main id="main-content" className="flex-1">
           {children}
         </main>

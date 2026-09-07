@@ -18,6 +18,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   return (
     <Link
       href={`/products/${product.slug}`}
+      prefetch={false}
       className="focus-ring group flex flex-col"
       aria-label={`${product.name}, ${formatPrice(product.price)}`}
     >

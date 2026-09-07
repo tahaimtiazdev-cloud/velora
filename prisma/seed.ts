@@ -1,12 +1,12 @@
 import { config } from "dotenv";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
 
-const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const db = new PrismaClient({ adapter });
 
 const CATEGORIES = [
@@ -49,8 +49,11 @@ interface ProductSeed {
   category: (typeof CATEGORIES)[number]["slug"];
   featured?: boolean;
   isNewArrival?: boolean;
-  variantType: "Size" | "Color";
-  variantValues: string[];
+  /** Omit both to seed a simple product with no variants (stock below). */
+  variantType?: "Size" | "Color";
+  variantValues?: string[];
+  /** Only used when variantType/variantValues are omitted. */
+  stock?: number;
 }
 
 const PRODUCTS: ProductSeed[] = [
@@ -301,6 +304,16 @@ const PRODUCTS: ProductSeed[] = [
     variantType: "Color",
     variantValues: ["Black", "Cognac"],
   },
+  {
+    name: "The Silk Pocket Square",
+    slug: "the-silk-pocket-square",
+    description:
+      "A hand-rolled silk pocket square in a small geometric print. One size, one considered finishing touch.",
+    price: 42,
+    sku: "VLR-ACC-004",
+    category: "accessories",
+    stock: 16,
+  },
 ];
 
 // Deterministic-but-varied stock levels so the catalog shows a realistic
@@ -336,6 +349,8 @@ async function main() {
     const categoryId = categoryBySlug.get(product.category);
     if (!categoryId) throw new Error(`Unknown category: ${product.category}`);
 
+    const hasVariants = Boolean(product.variantType && product.variantValues?.length);
+
     const created = await db.product.create({
       data: {
         name: product.name,
@@ -345,7 +360,9 @@ async function main() {
         compareAtPrice: product.compareAtPrice,
         sku: product.sku,
         categoryId,
-        stock: 0, // authoritative stock lives on variants for every seeded product
+        // Authoritative stock lives on variants when a product has them;
+        // otherwise this field is authoritative (see src/lib/inventory.ts).
+        stock: hasVariants ? 0 : (product.stock ?? 0),
         featured: product.featured ?? false,
         isNewArrival: product.isNewArrival ?? false,
         images: {
@@ -362,17 +379,19 @@ async function main() {
             },
           ],
         },
-        variants: {
-          create: product.variantValues.map((value) => {
-            const stock = stockForIndex(variantIndex++);
-            return {
-              type: product.variantType,
-              value,
-              stock,
-              sku: `${product.sku}-${value.toUpperCase()}`,
-            };
-          }),
-        },
+        variants: hasVariants
+          ? {
+              create: product.variantValues!.map((value) => {
+                const stock = stockForIndex(variantIndex++);
+                return {
+                  type: product.variantType!,
+                  value,
+                  stock,
+                  sku: `${product.sku}-${value.toUpperCase()}`,
+                };
+              }),
+            }
+          : undefined,
       },
     });
 

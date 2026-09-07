@@ -81,7 +81,11 @@ function FooterColumn({
       <ul className="mt-4 space-y-3">
         {items.map((item) => (
           <li key={item.href}>
-            <Link href={item.href} className="focus-ring text-sm text-paper/70 hover:text-paper">
+            <Link
+              href={item.href}
+              prefetch={false}
+              className="focus-ring text-sm text-paper/70 hover:text-paper"
+            >
               {item.label}
             </Link>
           </li>
