@@ -19,7 +19,7 @@ A production-quality, full-stack e-commerce application for a fictional premium 
 npm install
 ```
 
-Copy `.env.example` to `.env` and `.env.local` and fill in a `DATABASE_URL` (a free [Neon](https://neon.tech) project works well). Then:
+Copy `.env.example` to `.env` and fill in a `DATABASE_URL` (a free [Neon](https://neon.tech) project works well). If you're using the Vercel CLI, `vercel env pull .env.local` works too — both files are loaded, with `.env.local` taking precedence. Then:
 
 ```bash
 npx prisma migrate dev
